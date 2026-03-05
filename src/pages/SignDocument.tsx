@@ -107,9 +107,11 @@ const SignDocument = () => {
           }
 
           if (Array.isArray(fields) && fields.length > 0) {
-            // Check if these are visual fields (have x/y coords) or form fields
-            if (fields[0].x !== undefined && data.document_content?.includes('<')) {
-              console.log('Visual fields detected:', fields);
+            // Check if these are visual fields (have x/y coords) or FormBuilder fields
+            const isVisual = fields[0].x !== undefined;
+            console.log('Fields detected:', { isVisual, count: fields.length, hasContent: !!data.document_content });
+
+            if (isVisual) {
               setVisualFields(fields);
               setIsVisualMode(true);
               // Pre-fill default values
@@ -336,11 +338,14 @@ const SignDocument = () => {
           </CardHeader>
         </Card>
 
-        {/* Visual Mode: HTML document with positioned fields */}
-        {isVisualMode && document.document_content ? (
+        {/* Visual Mode: document with positioned fields overlaid */}
+        {isVisualMode ? (
           <Card className="mb-6">
             <CardHeader>
               <CardTitle className="text-right">תוכן המסמך</CardTitle>
+              <CardDescription className="text-right">
+                מלא את השדות המסומנים על המסמך ולחץ "חתום ושלח"
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="bg-muted p-4 rounded-lg mb-4">
@@ -355,12 +360,24 @@ const SignDocument = () => {
               </div>
 
               {/* Document with overlaid interactive fields */}
-              <div className="relative border rounded-lg bg-white">
-                <div
-                  className="p-8 prose prose-sm max-w-none"
-                  dir="rtl"
-                  dangerouslySetInnerHTML={{ __html: document.document_content }}
-                />
+              <div className="relative border rounded-lg bg-white" style={{ minHeight: '600px' }}>
+                {document.document_content ? (
+                  document.document_content.includes('<') ? (
+                    <div
+                      className="p-8 prose prose-sm max-w-none"
+                      dir="rtl"
+                      dangerouslySetInnerHTML={{ __html: document.document_content }}
+                    />
+                  ) : (
+                    <div className="p-8" dir="rtl">
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{document.document_content}</p>
+                    </div>
+                  )
+                ) : (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <p>מלא את השדות למטה</p>
+                  </div>
+                )}
 
                 {/* Interactive fields at visual positions */}
                 {visualFields.map((field) => {
