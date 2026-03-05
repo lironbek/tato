@@ -181,15 +181,23 @@ const SignDocument = () => {
 
   const initSignatureCanvas = useCallback((fieldId: string, canvasEl: HTMLCanvasElement | null) => {
     if (!canvasEl || signatureCanvasRefs.current[fieldId]?.canvas) return;
-    const fabricCanvas = new FabricCanvas(canvasEl, {
-      isDrawingMode: true,
-      width: canvasEl.parentElement?.clientWidth || 200,
-      height: canvasEl.parentElement?.clientHeight || 60,
-      backgroundColor: '#ffffff',
-    });
-    fabricCanvas.freeDrawingBrush.width = 2;
-    fabricCanvas.freeDrawingBrush.color = '#000000';
-    signatureCanvasRefs.current[fieldId] = { canvas: fabricCanvas };
+    try {
+      const parentWidth = canvasEl.parentElement?.clientWidth || 200;
+      const parentHeight = canvasEl.parentElement?.clientHeight || 60;
+      const fabricCanvas = new FabricCanvas(canvasEl, {
+        isDrawingMode: true,
+        width: parentWidth,
+        height: parentHeight,
+        backgroundColor: '#ffffff',
+      });
+      if (fabricCanvas.freeDrawingBrush) {
+        fabricCanvas.freeDrawingBrush.width = 2;
+        fabricCanvas.freeDrawingBrush.color = '#000000';
+      }
+      signatureCanvasRefs.current[fieldId] = { canvas: fabricCanvas };
+    } catch (err) {
+      console.error('Error initializing signature canvas:', err);
+    }
   }, []);
 
   const handleVisualSubmit = async () => {
@@ -398,11 +406,12 @@ const SignDocument = () => {
                       }}
                     >
                       {(field.type === 'signature' || field.type === 'initials') ? (
-                        <div className="border-2 border-blue-400 rounded bg-blue-50/80">
+                        <div className="border-2 border-blue-400 rounded bg-blue-50/80" style={{ width: `${field.width}px`, height: `${field.height}px` }}>
                           <div className="text-xs text-blue-600 px-1 font-medium">{field.label}{field.required && ' *'}</div>
                           <canvas
                             ref={(el) => initSignatureCanvas(field.id, el)}
-                            style={{ width: '100%', height: `${field.height - 20}px` }}
+                            width={field.width - 4}
+                            height={field.height - 24}
                           />
                         </div>
                       ) : field.type === 'date' ? (
