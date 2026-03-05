@@ -667,23 +667,62 @@ const ClientsManager = () => {
                   {searchTerm ? "לא נמצאו לקוחות התואמים לחיפוש" : "אין לקוחות פעילים כרגע"}
                 </div>
               ) : (
-                <div className="overflow-x-auto" dir="rtl">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-right">שם מלא</TableHead>
-                        <TableHead className="text-right">טלפון</TableHead>
-                        <TableHead className="text-right">אימייל</TableHead>
-                        <TableHead className="text-right">כתובת</TableHead>
-                        <TableHead className="text-center">מקור</TableHead>
-                        <TableHead className="text-center">פעולות</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredClients.map(client => renderClientRow(client, false))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <>
+                  {/* Desktop table */}
+                  <div className="hidden sm:block overflow-x-auto" dir="rtl">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-right">שם מלא</TableHead>
+                          <TableHead className="text-right">טלפון</TableHead>
+                          <TableHead className="text-right">אימייל</TableHead>
+                          <TableHead className="text-right">כתובת</TableHead>
+                          <TableHead className="text-center">מקור</TableHead>
+                          <TableHead className="text-center">פעולות</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredClients.map(client => renderClientRow(client, false))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {/* Mobile cards */}
+                  <div className="block sm:hidden space-y-3" dir="rtl">
+                    {filteredClients.map(client => (
+                      <div key={client.id} className="border border-border/50 rounded-xl p-4 space-y-3 bg-card/50">
+                        <div className="flex items-center justify-between">
+                          <Badge variant={client.source === 'form_link' ? 'secondary' : 'outline'}>
+                            {client.source === 'form_link' ? 'קישור' : 'ידני'}
+                          </Badge>
+                          <h3 className="font-semibold text-base">{client.full_name}</h3>
+                        </div>
+                        <div className="space-y-1.5 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 justify-end">
+                            <span>{client.phone}</span>
+                            <Phone className="h-3.5 w-3.5" />
+                          </div>
+                          {client.email && (
+                            <div className="flex items-center gap-2 justify-end">
+                              <span className="truncate">{client.email}</span>
+                              <Mail className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-2 justify-end pt-1 border-t border-border/30">
+                          <Button size="sm" variant="outline" onClick={() => openClientDocuments(client)}>
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => startEdit(client)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => handleDelete(client.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -708,23 +747,59 @@ const ClientsManager = () => {
                   {searchTerm ? "לא נמצאו לקוחות התואמים לחיפוש" : "אין לקוחות הממתינים לאישור כרגע"}
                 </div>
               ) : (
-                <div className="overflow-x-auto" dir="rtl">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-right">שם מלא</TableHead>
-                        <TableHead className="text-right">טלפון</TableHead>
-                        <TableHead className="text-right">אימייל</TableHead>
-                        <TableHead className="text-right">כתובת</TableHead>
-                        <TableHead className="text-center">מקור</TableHead>
-                        <TableHead className="text-center">אישור/דחייה</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredPendingClients.map(client => renderClientRow(client, true))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <>
+                  {/* Desktop table */}
+                  <div className="hidden sm:block overflow-x-auto" dir="rtl">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-right">שם מלא</TableHead>
+                          <TableHead className="text-right">טלפון</TableHead>
+                          <TableHead className="text-right">אימייל</TableHead>
+                          <TableHead className="text-right">כתובת</TableHead>
+                          <TableHead className="text-center">מקור</TableHead>
+                          <TableHead className="text-center">אישור/דחייה</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredPendingClients.map(client => renderClientRow(client, true))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {/* Mobile cards */}
+                  <div className="block sm:hidden space-y-3" dir="rtl">
+                    {filteredPendingClients.map(client => (
+                      <div key={client.id} className="border border-yellow-200 rounded-xl p-4 space-y-3 bg-yellow-50/50 dark:bg-yellow-900/10">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">ממתין</Badge>
+                          <h3 className="font-semibold text-base">{client.full_name}</h3>
+                        </div>
+                        <div className="space-y-1.5 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 justify-end">
+                            <span>{client.phone}</span>
+                            <Phone className="h-3.5 w-3.5" />
+                          </div>
+                          {client.email && (
+                            <div className="flex items-center gap-2 justify-end">
+                              <span className="truncate">{client.email}</span>
+                              <Mail className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-2 justify-end pt-1 border-t border-border/30">
+                          <Button size="sm" onClick={() => approveClient(client.id)} className="bg-green-600 hover:bg-green-700 text-white">
+                            <Check className="h-4 w-4 ml-1" />
+                            אשר
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => rejectClient(client.id)}>
+                            <X className="h-4 w-4 ml-1" />
+                            דחה
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

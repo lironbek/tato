@@ -18,12 +18,12 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { 
-  Users, 
-  Calendar, 
-  Package, 
-  CreditCard, 
-  FileText, 
+import {
+  Users,
+  Calendar,
+  Package,
+  CreditCard,
+  FileText,
   Camera,
   Bell,
   Settings as SettingsIcon,
@@ -37,7 +37,8 @@ import {
   Wrench,
   ClipboardList,
   Database,
-  BarChart3
+  BarChart3,
+  MoreHorizontal
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -55,6 +56,17 @@ import WorkOrderManager from "./WorkOrderManager";
 import { ThemeToggle } from "./ThemeToggle";
 import TodayAppointments from "./TodayAppointments";
 import QuickActions from "./QuickActions";
+
+const statColors = [
+  "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-l-2 border-violet-500/50",
+  "bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400 border-l-2 border-fuchsia-500/50",
+  "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-l-2 border-emerald-500/50",
+  "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-l-2 border-amber-500/50",
+  "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-l-2 border-violet-500/50",
+  "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-l-2 border-rose-500/50",
+  "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-l-2 border-cyan-500/50",
+  "bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400 border-l-2 border-fuchsia-500/50",
+];
 
 const Dashboard = () => {
   const [activeSection, setActiveSection] = useState("overview");
@@ -74,6 +86,7 @@ const Dashboard = () => {
     pendingWorkOrders: 0,
     completedWorkOrders: 0
   });
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -82,7 +95,7 @@ const Dashboard = () => {
       (event, session) => {
         setUser(session?.user ?? null);
         setLoading(false);
-        
+
         if (session?.user) {
           fetchCompanySettings(session.user);
           fetchOverviewStats(session.user);
@@ -96,7 +109,7 @@ const Dashboard = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
-      
+
       if (session?.user) {
         fetchCompanySettings(session.user);
         fetchOverviewStats(session.user);
@@ -125,7 +138,7 @@ const Dashboard = () => {
         .select('company_name, company_logo_url')
         .eq('user_id', user.id)
         .maybeSingle();
-      
+
       if (data) {
         setCompanySettings({
           company_name: data.company_name || "InkFlow CRM",
@@ -211,12 +224,12 @@ const Dashboard = () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      
+
       toast({
         title: "התנתקת בהצלחה",
         description: "אתה מועבר לדף ההתחברות",
       });
-      
+
       navigate('/auth');
     } catch (error: any) {
       toast({
@@ -253,31 +266,49 @@ const Dashboard = () => {
     { title: "עבודות שהושלמו", value: overviewStats.completedWorkOrders.toString(), icon: ClipboardList, change: `${overviewStats.completedWorkOrders} הושלמו` },
   ];
 
-  const upcomingAppointments = [
-    { time: "10:00", client: "דני כהן", service: "קעקוע זרוע", artist: "יוסי" },
-    { time: "12:30", client: "שרה לוי", service: "פירסינג אוזן", artist: "מיכל" },
-    { time: "14:00", client: "רון אברהם", service: "קעקוע גב", artist: "יוסי" },
-    { time: "16:30", client: "ליה מזרחי", service: "פירסינג בטן", artist: "מיכל" },
+  // Bottom nav items for mobile
+  const bottomNavItems = [
+    { id: "overview", label: "סקירה", icon: BarChart3 },
+    { id: "clients", label: "לקוחות", icon: Users },
+    { id: "appointments", label: "תורים", icon: Calendar },
+    { id: "work_orders", label: "הזמנות", icon: ClipboardList },
+    { id: "payments", label: "תשלומים", icon: CreditCard },
+  ];
+
+  const moreMenuItems = [
+    { id: "inventory", label: "מלאי", icon: Package },
+    { id: "services", label: "שירותים", icon: Wrench },
+    { id: "artists", label: "אמנים", icon: Palette },
+    { id: "users", label: "משתמשים", icon: Shield },
+    { id: "gallery", label: "גלריה", icon: Camera },
+    { id: "documents", label: "מסמכים", icon: FileText },
   ];
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full bg-gradient-to-br from-background via-background to-card">
-        {/* Header */}
-        <header className="border-b border-border/50 bg-card/50 backdrop-blur-md">
+      <div className="min-h-screen w-full aurora-bg relative">
+        {/* Fixed aurora glow overlays */}
+        <div className="fixed inset-0 pointer-events-none bg-gradient-glow opacity-60 z-0" />
+        <div className="fixed inset-0 pointer-events-none dot-pattern opacity-30 z-0" />
+
+        {/* Glassmorphic Header */}
+        <header className="sticky top-0 z-40 glass relative">
+          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
           <div className="flex h-14 sm:h-16 items-center justify-between px-3 sm:px-6">
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <SidebarTrigger />
+              <div className="hidden md:block">
+                <SidebarTrigger />
+              </div>
               {companySettings.company_logo_url ? (
-                <img 
-                  src={companySettings.company_logo_url} 
-                  alt="לוגו החברה" 
-                  className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg object-contain"
+                <img
+                  src={companySettings.company_logo_url}
+                  alt="לוגו החברה"
+                  className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg object-contain"
                 />
               ) : (
-                <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg bg-gradient-to-br from-primary to-accent"></div>
+                <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-gradient-to-br from-primary to-accent"></div>
               )}
-              <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent hidden sm:block">
+              <h1 className="text-base sm:text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent truncate max-w-[140px] sm:max-w-none">
                 {companySettings.company_name}
               </h1>
             </div>
@@ -303,29 +334,33 @@ const Dashboard = () => {
         </header>
 
         <div className="flex w-full" dir="rtl">
-          {/* Sidebar */}
-          <AppSidebar 
-            companySettings={companySettings}
-            activeSection={activeSection}
-            setActiveSection={setActiveSection}
-          />
+          {/* Sidebar - hidden on mobile */}
+          <div className="hidden md:block">
+            <AppSidebar
+              companySettings={companySettings}
+              activeSection={activeSection}
+              setActiveSection={setActiveSection}
+            />
+          </div>
 
-          {/* Main Content */}
-          <main className="flex-1 p-3 sm:p-6">
+          {/* Main Content - extra bottom padding on mobile for bottom nav */}
+          <main className="flex-1 p-3 sm:p-6 pb-20 md:pb-6">
             {activeSection === "overview" && (
               <div className="space-y-4 sm:space-y-6">
-                <div>
+                <div className="animate-fade-in">
                   <h2 className="text-2xl sm:text-3xl font-bold mb-2">ברוכים הבאים למערכת ניהול Cybertattoo</h2>
                   <p className="text-sm sm:text-base text-muted-foreground">האמנות זו הנשמה של האנושות</p>
                 </div>
 
                 {/* Stats Grid */}
                 <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
-                  {stats.map((stat) => (
-                    <Card key={stat.title} className="bg-gradient-card border-border/50 backdrop-blur-sm hover:shadow-card transition-all duration-300">
+                  {stats.map((stat, index) => (
+                    <Card key={stat.title} className={`animate-slide-up stagger-${index + 1} bg-gradient-card border-border/50 backdrop-blur-sm hover:shadow-glow-sm transition-all duration-300 hover:-translate-y-0.5`}>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-4">
                         <CardTitle className="text-xs sm:text-sm font-medium text-right">{stat.title}</CardTitle>
-                        <stat.icon className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
+                        <div className={`p-1.5 sm:p-2 rounded-lg ${statColors[index]}`}>
+                          <stat.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        </div>
                       </CardHeader>
                       <CardContent className="p-3 sm:p-4 pt-0">
                         <div className="text-lg sm:text-2xl font-bold">{stat.value}</div>
@@ -357,6 +392,72 @@ const Dashboard = () => {
             {activeSection === "payments" && <PaymentsManager />}
           </main>
         </div>
+
+        {/* Mobile Bottom Navigation */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass safe-bottom relative" dir="rtl">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+          <div className="flex items-center justify-around h-16 px-1">
+            {bottomNavItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => { setActiveSection(item.id); setShowMoreMenu(false); }}
+                className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-colors relative ${
+                  activeSection === item.id
+                    ? "text-primary"
+                    : "text-muted-foreground"
+                }`}
+              >
+                <item.icon className={`h-5 w-5 ${activeSection === item.id ? "scale-110" : ""} transition-transform`} />
+                <span className="text-[10px] font-medium leading-tight">{item.label}</span>
+                {activeSection === item.id && (
+                  <span className="absolute bottom-1 w-1 h-1 rounded-full bg-primary shadow-glow-sm" />
+                )}
+              </button>
+            ))}
+            {/* More button */}
+            <div className="relative flex-1">
+              <button
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                className={`flex flex-col items-center justify-center w-full h-full gap-0.5 transition-colors ${
+                  showMoreMenu || moreMenuItems.some(i => i.id === activeSection)
+                    ? "text-primary"
+                    : "text-muted-foreground"
+                }`}
+              >
+                <MoreHorizontal className="h-5 w-5" />
+                <span className="text-[10px] font-medium leading-tight">עוד</span>
+              </button>
+
+              {/* More menu popup */}
+              {showMoreMenu && (
+                <div className="absolute bottom-full right-0 mb-2 w-48 rounded-xl glass neon-border shadow-lg overflow-hidden animate-scale-in">
+                  {moreMenuItems.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => { setActiveSection(item.id); setShowMoreMenu(false); }}
+                      className={`flex items-center gap-3 w-full px-4 py-3 text-sm transition-colors ${
+                        activeSection === item.id
+                          ? "bg-primary/10 text-primary"
+                          : "hover:bg-muted/50"
+                      }`}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </nav>
+
+        {/* Overlay for more menu */}
+        {showMoreMenu && (
+          <div
+            className="md:hidden fixed inset-0 z-40"
+            onClick={() => setShowMoreMenu(false)}
+          />
+        )}
       </div>
     </SidebarProvider>
   );
@@ -382,7 +483,7 @@ function AppSidebar({ companySettings, activeSection, setActiveSection }: {
         acc[key] = false;
         return acc;
       }, {} as Record<string, boolean>);
-      
+
       // Then open the clicked group
       newState[groupLabel] = !prev[groupLabel];
       return newState;
@@ -407,7 +508,7 @@ function AppSidebar({ companySettings, activeSection, setActiveSection }: {
       ]
     },
     {
-      label: "בסיס נתונים", 
+      label: "בסיס נתונים",
       items: [
         { id: "artists", label: "אמנים", icon: Palette },
         { id: "users", label: "משתמשים", icon: Shield },
@@ -418,13 +519,13 @@ function AppSidebar({ companySettings, activeSection, setActiveSection }: {
   ];
 
   return (
-    <Sidebar side="right" className="border-l border-border/50" collapsible="icon">
+    <Sidebar side="right" className="border-l border-border/50 transition-all duration-300" collapsible="icon">
       <SidebarHeader className="p-3 sm:p-6">
         {companySettings.company_logo_url ? (
           <div className="space-y-2 sm:space-y-3 text-center">
-            <img 
-              src={companySettings.company_logo_url} 
-              alt="לוגו החברה" 
+            <img
+              src={companySettings.company_logo_url}
+              alt="לוגו החברה"
               className="h-12 w-12 sm:h-16 sm:w-16 mx-auto rounded-lg object-contain border"
             />
             {!collapsed && <h3 className="font-semibold text-xs sm:text-sm">{companySettings.company_name}</h3>}
@@ -436,19 +537,19 @@ function AppSidebar({ companySettings, activeSection, setActiveSection }: {
           </div>
         )}
       </SidebarHeader>
-      
+
       <SidebarContent>
         {/* Overview as standalone item */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton 
+                <SidebarMenuButton
                   onClick={() => setActiveSection("overview")}
                   isActive={activeSection === "overview"}
-                  className={`w-full justify-end text-right ${
-                    activeSection === "overview" 
-                      ? "bg-gradient-to-l from-primary to-accent text-primary-foreground shadow-lg" 
+                  className={`w-full justify-end text-right transition-all duration-200 ${
+                    activeSection === "overview"
+                      ? "bg-gradient-to-l from-primary to-accent text-primary-foreground shadow-lg"
                       : "hover:bg-secondary/50"
                   }`}
                 >
@@ -462,13 +563,13 @@ function AppSidebar({ companySettings, activeSection, setActiveSection }: {
 
         {menuSections.map((section) => (
           <SidebarGroup key={section.label}>
-            <SidebarGroupLabel 
+            <SidebarGroupLabel
               className="text-right font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
               onClick={() => !collapsed && toggleGroup(section.label)}
             >
               {!collapsed && (
                 <div className="flex items-center justify-between w-full">
-                  <span>{openGroups[section.label] ? "▼" : "◀"}</span>
+                  <span className={`transition-transform duration-200 ${openGroups[section.label] ? "rotate-90" : ""}`}>◀</span>
                   <span>{section.label}</span>
                 </div>
               )}
@@ -478,12 +579,12 @@ function AppSidebar({ companySettings, activeSection, setActiveSection }: {
                 <SidebarMenu>
                   {section.items.map((item) => (
                     <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton 
+                      <SidebarMenuButton
                         onClick={() => setActiveSection(item.id)}
                         isActive={activeSection === item.id}
-                        className={`w-full justify-end text-right ${
-                          activeSection === item.id 
-                            ? "bg-gradient-to-l from-primary to-accent text-primary-foreground shadow-lg" 
+                        className={`w-full justify-end text-right transition-all duration-200 ${
+                          activeSection === item.id
+                            ? "bg-gradient-to-l from-primary to-accent text-primary-foreground shadow-lg"
                             : "hover:bg-secondary/50"
                         }`}
                       >

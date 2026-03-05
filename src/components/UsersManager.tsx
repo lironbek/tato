@@ -652,7 +652,8 @@ const UsersManager = () => {
 
       {/* Users Table */}
       <Card className="bg-gradient-card border-border/50 backdrop-blur-sm">
-        <div className="overflow-x-auto">
+        {/* Desktop table */}
+        <div className="hidden sm:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -686,8 +687,8 @@ const UsersManager = () => {
                       {user.roles.length > 0 ? (
                         user.roles.map((role) => (
                           <div key={role} className="flex items-center gap-1">
-                            <Badge 
-                              variant={roleColors[role as keyof typeof roleColors] || "outline"} 
+                            <Badge
+                              variant={roleColors[role as keyof typeof roleColors] || "outline"}
                               className="text-xs"
                             >
                               {roleLabels[role as keyof typeof roleLabels] || role}
@@ -711,28 +712,13 @@ const UsersManager = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => startEditUser(user)}
-                        title="ערוך משתמש"
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => startEditUser(user)} title="ערוך משתמש">
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => startPasswordChange(user)}
-                        title="שנה סיסמה"
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => startPasswordChange(user)} title="שנה סיסמה">
                         <Key className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => startAddRole(user)}
-                        title="הוסף תפקיד"
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => startAddRole(user)} title="הוסף תפקיד">
                         <Plus className="h-4 w-4" />
                       </Button>
                        <Button
@@ -751,13 +737,83 @@ const UsersManager = () => {
               ))}
             </TableBody>
           </Table>
-          
+
           {filteredUsers.length === 0 && (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
                 {searchTerm ? "לא נמצאו משתמשים התואמים לחיפוש" : "אין משתמשים במערכת"}
               </p>
             </div>
+          )}
+        </div>
+        {/* Mobile cards */}
+        <div className="block sm:hidden p-3 space-y-3">
+          {filteredUsers.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {searchTerm ? "לא נמצאו משתמשים התואמים לחיפוש" : "אין משתמשים במערכת"}
+            </div>
+          ) : (
+            filteredUsers.map((user) => (
+              <div key={user.user_id} className="border border-border/50 rounded-xl p-4 space-y-3 bg-card/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap gap-1">
+                    {user.roles.length > 0 ? (
+                      user.roles.map((role) => (
+                        <Badge
+                          key={role}
+                          variant={roleColors[role as keyof typeof roleColors] || "outline"}
+                          className="text-xs"
+                        >
+                          {roleLabels[role as keyof typeof roleLabels] || role}
+                        </Badge>
+                      ))
+                    ) : (
+                      <Badge variant="outline" className="text-xs">ללא תפקיד</Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-base">{user.full_name || "ללא שם"}</h3>
+                    {user.roles.includes('administrator') && (
+                      <ShieldCheck className="h-4 w-4 text-yellow-500" />
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  {user.email && (
+                    <div className="flex items-center gap-2 justify-end">
+                      <span className="truncate">{user.email}</span>
+                      <Mail className="h-3.5 w-3.5" />
+                    </div>
+                  )}
+                  {user.phone && (
+                    <div className="flex items-center gap-2 justify-end">
+                      <span>{user.phone}</span>
+                      <Phone className="h-3.5 w-3.5" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-1.5 justify-end pt-1 border-t border-border/30 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={() => startEditUser(user)} className="h-8 px-2">
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => startPasswordChange(user)} className="h-8 px-2">
+                    <Key className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => startAddRole(user)} className="h-8 px-2">
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDeleteUser(user.user_id, user.full_name, user.roles)}
+                    className="text-destructive h-8 px-2"
+                    disabled={user.roles.includes('administrator')}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </Card>

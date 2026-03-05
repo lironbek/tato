@@ -519,73 +519,105 @@ const PaymentsManager = () => {
           {loading ? (
             <div className="text-center py-8">טוען...</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-left">לקוח</TableHead>
-                  <TableHead className="text-left">הזמנת עבודה</TableHead>
-                  <TableHead className="text-left">תאריך</TableHead>
-                  <TableHead className="text-left">סכום</TableHead>
-                  <TableHead className="text-left">אמצעי תשלום</TableHead>
-                  <TableHead className="text-left">סטטוס</TableHead>
-                  <TableHead className="text-left">הערות</TableHead>
-                  <TableHead className="text-left">פעולות</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPayments.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell className="font-medium text-left">
-                      {payment.clients?.full_name || "לא ידוע"}
-                    </TableCell>
-                    <TableCell className="text-left">
-                      {payment.work_orders?.work_order_number || "-"}
-                    </TableCell>
-                    <TableCell className="text-left">
-                      {new Date(payment.payment_date).toLocaleDateString('he-IL')}
-                    </TableCell>
-                    <TableCell className="font-medium text-left">
-                      ₪{payment.amount.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-left">
-                      {getPaymentMethodLabel(payment.payment_method || "")}
-                    </TableCell>
-                    <TableCell className="text-left">
-                      {getStatusBadge(payment.payment_status)}
-                    </TableCell>
-                    <TableCell className="text-left max-w-xs truncate">
-                      {payment.notes || "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => startEdit(payment)}
-                        >
+            <>
+              {/* Desktop table */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-left">לקוח</TableHead>
+                      <TableHead className="text-left">הזמנת עבודה</TableHead>
+                      <TableHead className="text-left">תאריך</TableHead>
+                      <TableHead className="text-left">סכום</TableHead>
+                      <TableHead className="text-left">אמצעי תשלום</TableHead>
+                      <TableHead className="text-left">סטטוס</TableHead>
+                      <TableHead className="text-left">הערות</TableHead>
+                      <TableHead className="text-left">פעולות</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPayments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell className="font-medium text-left">
+                          {payment.clients?.full_name || "לא ידוע"}
+                        </TableCell>
+                        <TableCell className="text-left">
+                          {payment.work_orders?.work_order_number || "-"}
+                        </TableCell>
+                        <TableCell className="text-left">
+                          {new Date(payment.payment_date).toLocaleDateString('he-IL')}
+                        </TableCell>
+                        <TableCell className="font-medium text-left">
+                          ₪{payment.amount.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-left">
+                          {getPaymentMethodLabel(payment.payment_method || "")}
+                        </TableCell>
+                        <TableCell className="text-left">
+                          {getStatusBadge(payment.payment_status)}
+                        </TableCell>
+                        <TableCell className="text-left max-w-xs truncate">
+                          {payment.notes || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button variant="ghost" size="sm" onClick={() => startEdit(payment)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDelete(payment.id)} className="text-destructive hover:text-destructive/80">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredPayments.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          לא נמצאו תשלומים
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              {/* Mobile cards */}
+              <div className="block sm:hidden p-3 space-y-3">
+                {filteredPayments.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">לא נמצאו תשלומים</div>
+                ) : (
+                  filteredPayments.map((payment) => (
+                    <div key={payment.id} className="border border-border/50 rounded-xl p-4 space-y-3 bg-card/50">
+                      <div className="flex items-center justify-between">
+                        {getStatusBadge(payment.payment_status)}
+                        <h3 className="font-semibold text-base">{payment.clients?.full_name || "לא ידוע"}</h3>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(payment.payment_date).toLocaleDateString('he-IL')}
+                        </span>
+                        <span className="text-lg font-bold text-green-600">₪{payment.amount.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <span>{payment.work_orders?.work_order_number || ""}</span>
+                        <span>{getPaymentMethodLabel(payment.payment_method || "")}</span>
+                      </div>
+                      {payment.notes && (
+                        <p className="text-xs text-muted-foreground text-right truncate">{payment.notes}</p>
+                      )}
+                      <div className="flex gap-2 justify-end pt-1 border-t border-border/30">
+                        <Button size="sm" variant="outline" onClick={() => startEdit(payment)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(payment.id)}
-                          className="text-destructive hover:text-destructive/80"
-                        >
+                        <Button size="sm" variant="ghost" onClick={() => handleDelete(payment.id)} className="text-destructive">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredPayments.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      לא נמצאו תשלומים
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  ))
                 )}
-              </TableBody>
-            </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

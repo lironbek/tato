@@ -9,10 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Upload, FileText, X, File, Plus, Download, Eye, Trash2, Send, Edit } from "lucide-react";
+import { Upload, FileText, X, File, Plus, Download, Eye, Trash2, Send, Edit, MousePointer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DocumentTextEditor from "./DocumentTextEditor";
 import FormBuilder, { FormField } from "./FormBuilder";
+import DocumentFieldMarker from "./DocumentFieldMarker";
+// @ts-ignore - mammoth doesn't have proper types
+import mammoth from "mammoth";
 
 interface DocumentType {
   id: string;
@@ -43,6 +46,8 @@ const DocumentsManager = () => {
   const [editingDocument, setEditingDocument] = useState<DocumentType | null>(null);
   const [showFormBuilder, setShowFormBuilder] = useState(false);
   const [currentFormFields, setCurrentFormFields] = useState<FormField[]>([]);
+  const [showFieldMarker, setShowFieldMarker] = useState(false);
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
   const [showNewFormBuilder, setShowNewFormBuilder] = useState(false);
   const [newFormData, setNewFormData] = useState({
     title: "",
@@ -274,6 +279,55 @@ const DocumentsManager = () => {
     }
   };
 
+  const openFieldMarker = (document: DocumentType) => {
+    setEditingDocument(document);
+    // Parse existing visual fields
+    let existingFields: any[] = [];
+    if (document.signature_positions) {
+      try {
+        const parsed = typeof document.signature_positions === 'string'
+          ? JSON.parse(document.signature_positions)
+          : document.signature_positions;
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].x !== undefined) {
+          existingFields = parsed;
+        }
+      } catch (e) {
+        console.log('Error parsing visual fields:', e);
+      }
+    }
+    setCurrentFormFields(existingFields as any);
+    setShowFieldMarker(true);
+  };
+
+  const handleFieldMarkerSave = async (fields: any[]) => {
+    if (!editingDocument) return;
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ signature_positions: JSON.stringify(fields) })
+        .eq('id', editingDocument.id);
+      if (error) {
+        toast.error('שגיאה בשמירת השדות');
+        return;
+      }
+      setDocuments(prev =>
+        prev.map(doc =>
+          doc.id === editingDocument.id
+            ? { ...doc, signature_positions: JSON.stringify(fields) }
+            : doc
+        )
+      );
+      fetchDocuments();
+    } catch (error) {
+      console.error('Error saving visual fields:', error);
+      toast.error('שגיאה בשמירת השדות');
+    }
+  };
+
+  const hasHtmlContent = (doc: DocumentType) => {
+    return doc.document_content && doc.document_content.includes('<');
+  };
+
   const openFormBuilder = (document: DocumentType) => {
     setEditingDocument(document);
     
@@ -397,57 +451,50 @@ const DocumentsManager = () => {
     if (!selectedDocument) return;
 
     try {
-      // Validate phone number
       if (!whatsappForm.clientPhone) {
         toast.error('מספר טלפון חסר');
         return;
       }
 
-      // Clean and validate phone number
-      let cleanPhone = whatsappForm.clientPhone.replace(/[^0-9]/g, '');
-      
-      // Add country code if missing
-      if (cleanPhone.startsWith('0')) {
-        cleanPhone = '972' + cleanPhone.substring(1);
-      } else if (!cleanPhone.startsWith('972')) {
-        cleanPhone = '972' + cleanPhone;
-      }
+      setSendingWhatsApp(true);
 
-      console.log('Formatted phone number:', cleanPhone);
-
-      // Create signature URL instead of signed download URL
+      // Generate signature token
       const signatureToken = whatsappForm.documentNumber;
-      const signatureUrl = `${window.location.origin}/sign/${signatureToken}`;
 
-      console.log('Signature URL created:', signatureUrl);
-
-      // Create WhatsApp message with signature link
-      const whatsappMessage = whatsappForm.message.replace('[הקישור יתווסף אוטומטי]', signatureUrl);
-      
-      // Store the message and phone for display
-      setWhatsappForm(prev => ({
-        ...prev,
-        generatedMessage: whatsappMessage,
-        formattedPhone: cleanPhone
-      }));
-
-      // Update document with recipient info and signature URL
+      // Update document with recipient info first
       await supabase
         .from('documents')
         .update({
-          client_id: whatsappForm.clientId || null, // קישור ללקוח
-          recipient_email: cleanPhone,
+          client_id: whatsappForm.clientId || null,
+          recipient_email: whatsappForm.clientPhone,
           recipient_name: whatsappForm.clientName,
           signature_request_id: signatureToken,
-          signature_url: signatureUrl
+          signature_url: `${window.location.origin}/sign/${signatureToken}`
         })
         .eq('id', selectedDocument.id);
 
-      toast.success('ההודעה מוכנה! העתק את הפרטים ושלח בווצאטפ');
+      // Send via edge function
+      const { data, error } = await supabase.functions.invoke('send-whatsapp-document', {
+        body: {
+          document_id: selectedDocument.id,
+          recipient_phone: whatsappForm.clientPhone,
+          recipient_name: whatsappForm.clientName,
+          custom_message: whatsappForm.message
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success('ההודעה נשלחה בהצלחה בווצאטפ!');
+      setSendWhatsAppDialog(false);
       fetchDocuments();
     } catch (error) {
-      console.error('Error preparing document:', error);
-      toast.error('שגיאה בהכנת המסמך');
+      console.error('Error sending WhatsApp:', error);
+      toast.error('שגיאה בשליחת ההודעה. ודא שה-Green API מוגדר כראוי.');
+    } finally {
+      setSendingWhatsApp(false);
     }
   };
 
@@ -478,6 +525,22 @@ const DocumentsManager = () => {
           continue;
         }
 
+        // Convert .docx to HTML if applicable
+        let documentContent: string | null = null;
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
+        if (fileExtension === 'docx' || file.type.includes('wordprocessingml.document')) {
+          try {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.convertToHtml({ arrayBuffer });
+            documentContent = result.value;
+            if (result.messages?.length) {
+              console.log('Mammoth conversion messages:', result.messages);
+            }
+          } catch (convErr) {
+            console.error('Error converting docx to HTML:', convErr);
+          }
+        }
+
         // Save to database with conflict handling
         const { error: dbError } = await supabase
           .from('documents')
@@ -491,7 +554,8 @@ const DocumentsManager = () => {
             description: formData.description,
             category: formData.category || null,
             is_signed: formData.isSigned,
-            signed_date: formData.isSigned ? new Date().toISOString().split('T')[0] : null
+            signed_date: formData.isSigned ? new Date().toISOString().split('T')[0] : null,
+            document_content: documentContent
           });
 
         if (dbError) {
@@ -563,31 +627,31 @@ const DocumentsManager = () => {
               <p className="text-muted-foreground">לא נמצאו מסמכים</p>
             </div>
           ) : (
-            <div className="overflow-x-auto" dir="ltr">
+            <div className="overflow-x-auto" dir="rtl">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-left">שם הקובץ</TableHead>
-                    <TableHead className="text-left">תאריך</TableHead>
-                    <TableHead className="text-left">גודל</TableHead>
-                    <TableHead className="text-left">קטגוריה</TableHead>
-                    <TableHead className="text-left">סטטוס</TableHead>
-                    <TableHead className="text-left">פעולות</TableHead>
+                    <TableHead className="text-right">שם הקובץ</TableHead>
+                    <TableHead className="text-right">תאריך</TableHead>
+                    <TableHead className="text-right">גודל</TableHead>
+                    <TableHead className="text-right">קטגוריה</TableHead>
+                    <TableHead className="text-right">סטטוס</TableHead>
+                    <TableHead className="text-right">פעולות</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {documents.map((doc) => (
                     <TableRow key={doc.id}>
-                      <TableCell className="text-left font-medium">
+                      <TableCell className="text-right font-medium">
                         {doc.title || doc.file_name}
                       </TableCell>
-                      <TableCell className="text-left">
+                      <TableCell className="text-right">
                         {new Date(doc.created_at).toLocaleDateString('he-IL')}
                       </TableCell>
-                      <TableCell className="text-left">
+                      <TableCell className="text-right">
                         {formatFileSize(doc.file_size)}
                       </TableCell>
-                      <TableCell className="text-left">
+                      <TableCell className="text-right">
                         {getCategoryDisplay(doc.category)}
                       </TableCell>
                       <TableCell>
@@ -597,6 +661,17 @@ const DocumentsManager = () => {
                       </TableCell>
                       <TableCell>
                           <div className="flex gap-2">
+                            {doc.document_content && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openFieldMarker(doc)}
+                                className="text-indigo-600 hover:text-indigo-800"
+                                title="סימון שדות על המסמך (חתימה, טקסט, תאריך)"
+                              >
+                                <MousePointer className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -904,61 +979,6 @@ const DocumentsManager = () => {
                 placeholder="הודעה אישית ללקוח..."
               />
             </div>
-            
-            {/* Generated Message Display */}
-            {whatsappForm.generatedMessage && (
-              <div className="mt-6 p-4 bg-muted rounded-lg space-y-4">
-                <h4 className="font-semibold text-center">פרטי השליחה מוכנים!</h4>
-                
-                <div className="space-y-2">
-                  <Label className="text-right block">מספר טלפון:</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={whatsappForm.formattedPhone}
-                      readOnly
-                      className="bg-white"
-                      dir="ltr"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        navigator.clipboard.writeText(whatsappForm.formattedPhone);
-                        toast.success('מספר הטלפון הועתק!');
-                      }}
-                    >
-                      העתק
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-right block">ההודעה לשליחה:</Label>
-                  <div className="flex gap-2">
-                    <Textarea
-                      value={whatsappForm.generatedMessage}
-                      readOnly
-                      className="bg-white"
-                      rows={6}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        navigator.clipboard.writeText(whatsappForm.generatedMessage);
-                        toast.success('ההודעה הועתקה!');
-                      }}
-                    >
-                      העתק
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="text-sm text-muted-foreground text-center">
-                  כעת פתח את ווצאטפ, חפש את המספר והדבק את ההודעה
-                </div>
-              </div>
-            )}
           </div>
           <DialogFooter>
             <Button 
@@ -967,13 +987,22 @@ const DocumentsManager = () => {
             >
               ביטול
             </Button>
-            <Button 
+            <Button
               onClick={sendDocumentToClient}
-              disabled={!whatsappForm.clientPhone || !whatsappForm.clientName}
+              disabled={!whatsappForm.clientPhone || !whatsappForm.clientName || sendingWhatsApp}
               className="bg-gradient-to-r from-primary to-accent"
             >
-              <Send className="mr-2 h-4 w-4" />
-              {whatsappForm.generatedMessage ? "הכן הודעה חדשה" : "הכן הודעה"}
+              {sendingWhatsApp ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-b-2 border-white rounded-full ml-2"></div>
+                  שולח...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  שלח בווצאטפ
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -997,6 +1026,22 @@ const DocumentsManager = () => {
           onClose={() => setShowFormBuilder(false)}
           onSave={handleFormSave}
           initialFields={currentFormFields}
+          documentTitle={editingDocument.title || editingDocument.file_name}
+        />
+      )}
+
+      {/* Visual Field Marker */}
+      {editingDocument && editingDocument.document_content && (
+        <DocumentFieldMarker
+          isOpen={showFieldMarker}
+          onClose={() => setShowFieldMarker(false)}
+          onSave={handleFieldMarkerSave}
+          documentContent={
+            editingDocument.document_content.includes('<')
+              ? editingDocument.document_content
+              : `<div style="white-space: pre-wrap; line-height: 1.8; font-size: 14px;">${editingDocument.document_content}</div>`
+          }
+          initialFields={currentFormFields as any}
           documentTitle={editingDocument.title || editingDocument.file_name}
         />
       )}

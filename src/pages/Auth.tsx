@@ -50,7 +50,7 @@ const Auth = () => {
         .select('company_logo_url')
         .limit(1)
         .maybeSingle();
-      
+
       if (data?.company_logo_url) {
         setCompanyLogo(data.company_logo_url);
       }
@@ -84,7 +84,7 @@ const Auth = () => {
         title: "התחברות מוצלחת!",
         description: "אתה מועבר לדף הבית",
       });
-      
+
     } catch (error: any) {
       toast({
         title: "שגיאה בהתחברות",
@@ -102,23 +102,28 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
+    <div className="min-h-screen flex items-center justify-center aurora-bg p-4 relative overflow-hidden">
+      {/* Dot pattern overlay */}
+      <div className="absolute inset-0 dot-pattern opacity-40" />
+      {/* Glow overlay */}
+      <div className="absolute inset-0 bg-gradient-glow opacity-80" />
+
+      <div className="w-full max-w-md relative z-10 animate-scale-in">
+        <div className="text-center mb-8 animate-fade-in">
           {companyLogo && (
             <div className="mb-6 flex justify-center">
-              <img 
-                src={companyLogo} 
-                alt="לוגו החברה" 
-                className="h-20 w-auto object-contain"
+              <img
+                src={companyLogo}
+                alt="לוגו החברה"
+                className="h-20 w-auto object-contain drop-shadow-lg"
               />
             </div>
           )}
-          <h1 className="text-3xl font-bold text-primary">ברוכים הבאים</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">ברוכים הבאים</h1>
           <p className="text-muted-foreground mt-2">התחבר למערכת</p>
         </div>
 
-        <Card>
+        <Card className="glass neon-border shadow-violet">
           <CardHeader>
             <CardTitle className="text-right">התחברות</CardTitle>
             <CardDescription className="text-right">
@@ -150,9 +155,9 @@ const Auth = () => {
                   className="text-right"
                 />
               </div>
-              <Button 
-                type="submit" 
-                className="w-full bg-gradient-to-r from-primary to-accent"
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 hover:shadow-glow-sm hover:scale-[1.02] transition-all duration-200"
                 disabled={loading}
               >
                 {loading ? "מתחבר..." : "התחבר"}

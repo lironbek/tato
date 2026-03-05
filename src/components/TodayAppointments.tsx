@@ -88,10 +88,10 @@ const TodayAppointments = () => {
 
   const getStatusBadge = (status?: string) => {
     const statusColors = {
-      'scheduled': 'bg-blue-100 text-blue-800',
-      'completed': 'bg-green-100 text-green-800',
-      'cancelled': 'bg-red-100 text-red-800',
-      'in-progress': 'bg-yellow-100 text-yellow-800'
+      'scheduled': 'bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300',
+      'completed': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300',
+      'cancelled': 'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300',
+      'in-progress': 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300'
     };
 
     const statusText = {

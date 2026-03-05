@@ -387,69 +387,108 @@ const InventoryManager = () => {
           {loading ? (
             <div className="text-center py-8">טוען...</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-left">שם הפריט</TableHead>
-                  <TableHead className="text-left">מק"ט</TableHead>
-                  <TableHead className="text-left">קטגוריה</TableHead>
-                  <TableHead className="text-left">מלאי</TableHead>
-                  <TableHead className="text-left">מחיר עלות</TableHead>
-                  <TableHead className="text-left">מחיר מכירה</TableHead>
-                  <TableHead className="text-left">ספק</TableHead>
-                  <TableHead className="text-left">פעולות</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredItems.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium text-left">{item.item_name}</TableCell>
-                    <TableCell className="text-left">{item.sku || "-"}</TableCell>
-                    <TableCell className="text-left">{item.category || "-"}</TableCell>
-                    <TableCell className="text-left">
-                      <Badge 
-                        variant={item.current_stock <= item.minimum_stock ? "destructive" : "default"}
-                      >
-                        {item.current_stock}/{item.minimum_stock}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-left">
-                      {item.cost_price ? `₪${item.cost_price}` : "-"}
-                    </TableCell>
-                    <TableCell className="text-left">
-                      {item.selling_price ? `₪${item.selling_price}` : "-"}
-                    </TableCell>
-                    <TableCell className="text-left">{item.supplier || "-"}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => startEdit(item)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(item.id)}
-                          className="text-destructive hover:text-destructive/80"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+            <>
+              {/* Desktop table */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-left">שם הפריט</TableHead>
+                      <TableHead className="text-left">מק"ט</TableHead>
+                      <TableHead className="text-left">קטגוריה</TableHead>
+                      <TableHead className="text-left">מלאי</TableHead>
+                      <TableHead className="text-left">מחיר עלות</TableHead>
+                      <TableHead className="text-left">מחיר מכירה</TableHead>
+                      <TableHead className="text-left">ספק</TableHead>
+                      <TableHead className="text-left">פעולות</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium text-left">{item.item_name}</TableCell>
+                        <TableCell className="text-left">{item.sku || "-"}</TableCell>
+                        <TableCell className="text-left">{item.category || "-"}</TableCell>
+                        <TableCell className="text-left">
+                          <Badge
+                            variant={item.current_stock <= item.minimum_stock ? "destructive" : "default"}
+                          >
+                            {item.current_stock}/{item.minimum_stock}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-left">
+                          {item.cost_price ? `₪${item.cost_price}` : "-"}
+                        </TableCell>
+                        <TableCell className="text-left">
+                          {item.selling_price ? `₪${item.selling_price}` : "-"}
+                        </TableCell>
+                        <TableCell className="text-left">{item.supplier || "-"}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button variant="ghost" size="sm" onClick={() => startEdit(item)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id)} className="text-destructive hover:text-destructive/80">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredItems.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          לא נמצאו פריטים
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              {/* Mobile cards */}
+              <div className="block sm:hidden p-3 space-y-3">
+                {filteredItems.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">לא נמצאו פריטים</div>
+                ) : (
+                  filteredItems.map((item) => {
+                    const isLow = item.current_stock <= item.minimum_stock;
+                    const stockPercent = item.minimum_stock > 0 ? Math.min((item.current_stock / item.minimum_stock) * 100, 100) : 100;
+                    return (
+                      <div key={item.id} className={`border rounded-xl p-4 space-y-3 ${isLow ? 'border-destructive/30 bg-destructive/5' : 'border-border/50 bg-card/50'}`}>
+                        <div className="flex items-center justify-between">
+                          <Badge variant={isLow ? "destructive" : "default"}>
+                            {item.current_stock}/{item.minimum_stock}
+                          </Badge>
+                          <h3 className="font-semibold text-base">{item.item_name}</h3>
+                        </div>
+                        {/* Stock level indicator */}
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${isLow ? 'bg-destructive' : 'bg-green-500'}`}
+                            style={{ width: `${stockPercent}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>{item.category || ""}</span>
+                          <span>{item.cost_price ? `עלות: ₪${item.cost_price}` : ""}</span>
+                        </div>
+                        {item.supplier && (
+                          <div className="text-xs text-muted-foreground text-right">ספק: {item.supplier}</div>
+                        )}
+                        <div className="flex gap-2 justify-end pt-1 border-t border-border/30">
+                          <Button size="sm" variant="outline" onClick={() => startEdit(item)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleDelete(item.id)} className="text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredItems.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      לא נמצאו פריטים
-                    </TableCell>
-                  </TableRow>
+                    );
+                  })
                 )}
-              </TableBody>
-            </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

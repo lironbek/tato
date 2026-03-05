@@ -870,8 +870,9 @@ const WorkOrderManager = () => {
             <CardTitle>רשימת הזמנות ({workOrders.length})</CardTitle>
             <CardDescription>כל הזמנות העבודה במערכת</CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
+          <CardContent className="p-0 sm:p-0">
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -890,7 +891,7 @@ const WorkOrderManager = () => {
                     const currentStatus = getOrderStatus(order);
                     const statusInfo = getStatusDisplay(currentStatus);
                     const paymentInfo = getOrderPaymentInfo(order.id, order.estimated_price);
-                    
+
                     return (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium text-right">
@@ -936,47 +937,19 @@ const WorkOrderManager = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCreatePayment(order)}
-                              className="text-green-600 hover:text-green-800"
-                              title="צור תשלום"
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleCreatePayment(order)} className="text-green-600 hover:text-green-800" title="צור תשלום">
                               <CreditCard className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleScheduleAppointment(order)}
-                              className="text-purple-600 hover:text-purple-800"
-                              title="קבע תור"
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleScheduleAppointment(order)} className="text-purple-600 hover:text-purple-800" title="קבע תור">
                               <Clock className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handlePrint(order)}
-                              className="text-orange-600 hover:text-orange-800"
-                              title="הדפס הזמנה"
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handlePrint(order)} className="text-orange-600 hover:text-orange-800" title="הדפס הזמנה">
                               <Printer className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(order)}
-                              className="text-blue-600 hover:text-blue-800"
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleEdit(order)} className="text-blue-600 hover:text-blue-800">
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(order.id)}
-                              className="text-red-600 hover:text-red-800"
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleDelete(order.id)} className="text-red-600 hover:text-red-800">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -986,6 +959,60 @@ const WorkOrderManager = () => {
                   })}
                 </TableBody>
               </Table>
+            </div>
+            {/* Mobile cards */}
+            <div className="block sm:hidden p-3 space-y-3">
+              {workOrders.map((order) => {
+                const currentStatus = getOrderStatus(order);
+                const statusInfo = getStatusDisplay(currentStatus);
+                const paymentInfo = getOrderPaymentInfo(order.id, order.estimated_price);
+
+                return (
+                  <div key={order.id} className="border border-border/50 rounded-xl p-4 space-y-3 bg-card/50">
+                    <div className="flex items-center justify-between">
+                      <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                      <div className="text-right">
+                        <h3 className="font-semibold text-base">{order.work_order_number}</h3>
+                        <p className="text-sm text-muted-foreground">{getClientName(order.client_id)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {new Date(order.work_date).toLocaleDateString('he-IL')}
+                      </span>
+                      <span className="font-bold text-green-600">{formatPrice(order.estimated_price)}</span>
+                    </div>
+                    {paymentInfo.hasPayments && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-green-600">שולם: {formatPrice(paymentInfo.totalPaid)}</span>
+                        {paymentInfo.remaining > 0 && (
+                          <span className="text-orange-600">יתרה: {formatPrice(paymentInfo.remaining)}</span>
+                        )}
+                      </div>
+                    )}
+                    <div className="text-sm text-muted-foreground text-right">
+                      {getServiceName(order.service_id)}
+                    </div>
+                    <div className="flex gap-1.5 justify-end pt-1 border-t border-border/30 flex-wrap">
+                      <Button size="sm" variant="outline" onClick={() => handleCreatePayment(order)} className="text-green-600 h-8 px-2">
+                        <CreditCard className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleScheduleAppointment(order)} className="text-purple-600 h-8 px-2">
+                        <Clock className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handlePrint(order)} className="text-orange-600 h-8 px-2">
+                        <Printer className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(order)} className="h-8 px-2">
+                        <Edit className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => handleDelete(order.id)} className="text-red-600 h-8 px-2">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

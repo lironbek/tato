@@ -238,8 +238,9 @@ const ServicesManager = () => {
             <CardTitle>רשימת שירותים ({services.length})</CardTitle>
             <CardDescription>כל השירותים הזמינים במערכת</CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
+          <CardContent className="p-0 sm:p-0">
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -308,6 +309,41 @@ const ServicesManager = () => {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+            {/* Mobile cards */}
+            <div className="block sm:hidden p-3 space-y-3">
+              {services.map((service) => (
+                <div key={service.id} className="border border-border/50 rounded-xl p-4 space-y-3 bg-card/50">
+                  <div className="flex items-center justify-between">
+                    {service.category && (
+                      <Badge variant="outline">{getCategoryDisplay(service.category)}</Badge>
+                    )}
+                    <h3 className="font-semibold text-base">{service.name}</h3>
+                  </div>
+                  {service.description && (
+                    <p className="text-sm text-muted-foreground text-right line-clamp-2">{service.description}</p>
+                  )}
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      {service.duration_minutes && (
+                        <>
+                          <Clock className="h-3.5 w-3.5" />
+                          <span>{formatDuration(service.duration_minutes)}</span>
+                        </>
+                      )}
+                    </div>
+                    <span className="font-bold text-green-600">{formatPrice(service.price)}</span>
+                  </div>
+                  <div className="flex gap-2 justify-end pt-1 border-t border-border/30">
+                    <Button size="sm" variant="outline" onClick={() => handleEdit(service)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => handleDelete(service.id)} className="text-red-600">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
